@@ -38,6 +38,7 @@ class RDTSender:
         :return: the ASCII code of the character, for example ASCII('A') = 65
         """
         checksum = int(ord(data))
+
         return checksum
 
     @staticmethod
@@ -54,23 +55,29 @@ class RDTSender:
         return pkt_clone
 
     @staticmethod
-    def is_corrupted(reply):
+    def is_corrupted(sentpkt, reply):
         """ Check if the received reply from receiver is corrupted or not
         :param reply: a python dictionary represent a reply sent by the receiver
         :return: True -> if the reply is corrupted | False ->  if the reply is NOT corrupted
         """
-        # TODO provide your own implementation
-        pass
+        if reply['checksum'] != sentpkt['checksum']:
+            return True
+        
+        else:
+            return False
 
     @staticmethod
-    def is_expected_seq(reply, exp_seq):
+    def is_not_expected_seq(reply_seq, exp_seq):
         """ Check if the received reply from receiver has the expected sequence number
         :param reply: a python dictionary represent a reply sent by the receiver
         :param exp_seq: the sender expected sequence number '0' or '1' represented as a character
-        :return: True -> if ack in the reply match the   expected sequence number otherwise False
+        :return: True -> if ack in the reply does not match the   expected sequence number otherwise False
         """
-        # TODO provide your own implementation
-        pass
+        if reply_seq != exp_seq:
+            return True
+        
+        else:
+            return False
 
     @staticmethod
     def make_pkt(seq, data, checksum):
@@ -95,10 +102,18 @@ class RDTSender:
 
         # for every character in the buffer
         for data in process_buffer:
+            print('Sender expecting seq num: ', self.sequence)
 
             checksum = RDTSender.get_checksum(data)
             pkt = RDTSender.make_pkt(self.sequence, data, checksum)
+            print('Sender sending: ', pkt)
             reply = self.net_srv.udt_send(pkt)
+
+            if self.sequence == '0':
+                self.sequence = '1'
+            
+            elif self.sequence == '1':
+                self.sequence = '0'
 
         print(f'Sender Done!')
         return

@@ -32,17 +32,25 @@ class RDTReceiver:
             :return: True -> if the reply is corrupted | False ->  if the reply is NOT corrupted
         """
         # TODO provide your own implementation
-        pass
+        if packet['checksum'] != int(ord(packet['data'])):
+            return True
+        
+        else:
+            return False
 
     @staticmethod
-    def is_expected_seq(rcv_pkt, exp_seq):
+    def is_not_expected_seq(rcv_pkt, exp_seq):
         """ Check if the received reply from receiver has the expected sequence number
          :param rcv_pkt: a python dictionary represent a packet received by the receiver
          :param exp_seq: the receiver expected sequence number '0' or '1' represented as a character
          :return: True -> if ack in the reply match the   expected sequence number otherwise False
         """
         # TODO provide your own implementation
-        pass
+        if rcv_pkt['sequence_number'] != exp_seq:
+            return True
+        
+        else:
+            return False
 
 
     @staticmethod
@@ -63,13 +71,17 @@ class RDTReceiver:
         :param rcv_pkt: a packet delivered by the network layer 'udt_send()' to the receiver
         :return: the reply packet
         """
-
-        # TODO provide your own implementation
-
+ 
         # deliver the data to the process in the application layer
+        print('Receiver: expecting seq num: ', self.sequence)
         ReceiverProcess.deliver_data(rcv_pkt['data'])
+        reply_pkt = RDTReceiver.make_reply_pkt(self.sequence, int(ord(self.sequence)))
+        print('Receiver: reply with: ', reply_pkt)
 
-        #reply_pkt = RDTReceiver.make_reply_pkt()
-        #return reply_pkt
+        if self.sequence == '0':
+            self.sequence = '1'
+        
+        elif self.sequence == '1':
+            self.sequence = '0'
 
-        return None
+        return reply_pkt
