@@ -55,25 +55,28 @@ class RDTSender:
         return pkt_clone
 
     @staticmethod
-    def is_corrupted(sentpkt, reply):
+    def is_corrupted(reply):
         """ Check if the received reply from receiver is corrupted or not
         :param reply: a python dictionary represent a reply sent by the receiver
         :return: True -> if the reply is corrupted | False ->  if the reply is NOT corrupted
         """
-        if reply['checksum'] != sentpkt['checksum']:
+        if reply['checksum'] != int(ord(reply['ack'])):
+            return True
+
+        elif reply['checksum'] != '1' or reply['checksum'] != '0':
             return True
         
         else:
             return False
 
     @staticmethod
-    def is_not_expected_seq(reply_seq, exp_seq):
+    def is_not_expected_seq(reply, exp_seq):
         """ Check if the received reply from receiver has the expected sequence number
         :param reply: a python dictionary represent a reply sent by the receiver
         :param exp_seq: the sender expected sequence number '0' or '1' represented as a character
         :return: True -> if ack in the reply does not match the   expected sequence number otherwise False
         """
-        if reply_seq != exp_seq:
+        if reply['ack'] != exp_seq:
             return True
         
         else:
@@ -94,6 +97,15 @@ class RDTSender:
         }
         return packet
 
+    @staticmethod
+    def switch_sequence(self):
+        """Switch the alternating sequence bit"""
+        if self.sequence == '0':
+            self.sequence = '1'
+            
+        elif self.sequence == '1':
+            self.sequence = '0'
+
     def rdt_send(self, process_buffer):
         """ Implement the RDT v2.2 for the sender
         :param process_buffer:  a list storing the message the sender process wish to send to the receiver process
@@ -109,11 +121,17 @@ class RDTSender:
             print('Sender sending: ', pkt)
             reply = self.net_srv.udt_send(pkt)
 
-            if self.sequence == '0':
-                self.sequence = '1'
-            
-            elif self.sequence == '1':
-                self.sequence = '0'
+            if RDTSender.is_corrupted(reply):
+                print('network_layer: corruption occurred ', reply)
+
+            while RDTSender.is_not_expected_seq(reply, self.sequence):
+                print('Sender re-sending: ', pkt)
+                reply = self.net_srv.udt_send(pkt)
+
+                print('Sender received: ', reply)
+
+            print('Sender received: ', reply)
+            RDTSender.switch_sequence(self)
 
         print(f'Sender Done!')
         return

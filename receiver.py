@@ -26,15 +26,18 @@ class RDTReceiver:
         self.sequence = '0'
 
     @staticmethod
-    def is_corrupted(packet):
+    def is_corrupted(rcv_pkt):
         """ Check if the received packet from sender is corrupted or not
             :param packet: a python dictionary represent a packet received from the sender
             :return: True -> if the reply is corrupted | False ->  if the reply is NOT corrupted
         """
         # TODO provide your own implementation
-        if packet['checksum'] != int(ord(packet['data'])):
+        if rcv_pkt['data'] != chr(rcv_pkt['checksum']):
             return True
         
+        elif rcv_pkt['sequence_number'] != '0' and rcv_pkt['sequence_number'] != '1':
+            return True
+
         else:
             return False
 
@@ -66,6 +69,22 @@ class RDTReceiver:
         }
         return reply_pck
 
+    @staticmethod
+    def switch_sequence(self):
+        """Switch the alternating sequence bit"""
+        if self.sequence == '0':
+            self.sequence = '1'
+            
+        elif self.sequence == '1':
+            self.sequence = '0'
+
+    def previous_seq(self):
+        if self.sequence == '0':
+            return '1'
+
+        elif self.sequence == '1':
+            return '0'
+
     def rdt_rcv(self, rcv_pkt):
         """  Implement the RDT v2.2 for the receiver
         :param rcv_pkt: a packet delivered by the network layer 'udt_send()' to the receiver
@@ -74,14 +93,25 @@ class RDTReceiver:
  
         # deliver the data to the process in the application layer
         print('Receiver: expecting seq num: ', self.sequence)
-        ReceiverProcess.deliver_data(rcv_pkt['data'])
-        reply_pkt = RDTReceiver.make_reply_pkt(self.sequence, int(ord(self.sequence)))
-        print('Receiver: reply with: ', reply_pkt)
 
-        if self.sequence == '0':
-            self.sequence = '1'
-        
-        elif self.sequence == '1':
-            self.sequence = '0'
+        previous_seq = RDTReceiver.previous_seq(self)
 
-        return reply_pkt
+        if RDTReceiver.is_corrupted(rcv_pkt):
+            reply_pkt = RDTReceiver.make_reply_pkt(previous_seq, int(ord(previous_seq)))
+            print('Receiver: reply with: ', reply_pkt)
+
+            return reply_pkt
+
+        elif RDTReceiver.is_not_expected_seq(rcv_pkt, self.sequence):
+            reply_pkt = RDTReceiver.make_reply_pkt(self.sequence, int(ord(self.sequence)))
+            print('Receiver: reply with: ', reply_pkt)
+
+            return reply_pkt
+
+        else:
+            ReceiverProcess.deliver_data(rcv_pkt['data'])
+            reply_pkt = RDTReceiver.make_reply_pkt(self.sequence, int(ord(self.sequence)))
+            print('Receiver: reply with: ', reply_pkt)
+            RDTReceiver.switch_sequence(self)
+            
+            return reply_pkt

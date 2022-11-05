@@ -17,11 +17,6 @@ if __name__ == '__main__':
         corrupt_ack = bool(int(args['ack']))
     
     SenderProcess.set_outgoing_data(msg)
-    """ edit
-    #print(f'Sender expecting seq num: ')
-    #print(f'Sender is sending: {SenderProcess.get_outgoing_data()}')
-    SenderProcess.get_outgoing_data()
-    """
 
     network_serv = NetworkLayer(reliability=prob_to_deliver, delay=delay, pkt_corrupt=corrupt_pkt,
                                 ack_corrupt=corrupt_ack)
